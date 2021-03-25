@@ -13,13 +13,14 @@ import { useHttpClient } from '../../shared/hooks/http-hook';
 import { AuthContext } from '../../shared/context/auth-context';
 import ErrorModal from '../../shared/components/UIElements/ErrorModal';
 import LoadingSpinner from '../../shared/components/UIElements/LoadingSpinner';
+import ImageUpload from '../../shared/components/FormElements/ImageUpload';
 
 const NewPlace = () => {
   const history = useHistory();
   const auth = useContext(AuthContext);
   const { isLoading, error, sendRequest, clearError } = useHttpClient();
 
-  const [formState, titleInputHandler] = useForm({
+  const [formState, inputHandler] = useForm({
     title: {
       value: '',
       isValid: false,
@@ -32,24 +33,23 @@ const NewPlace = () => {
       value: '',
       isValid: false,
     },
+    image: {
+      value: '',
+      isValid: false,
+    },
   });
 
   const placeSubmitHandler = async (event) => {
     event.preventDefault();
     try {
-      await sendRequest(
-        'http://localhost:5000/api/places',
-        'POST',
-        JSON.stringify({
-          title: formState.inputs.title.value,
-          description: formState.inputs.description.value,
-          address: formState.inputs.address.value,
-          creator: auth.userId,
-        }),
-        {
-          'Content-type': 'application/json',
-        }
-      );
+      const formData = new FormData();
+      formData.append('title', formState.inputs.title.value);
+      formData.append('description', formState.inputs.description.value);
+      formData.append('address', formState.inputs.address.value);
+      formData.append('creator', auth.userId);
+      formData.append('image', formState.inputs.image.value);
+
+      await sendRequest('http://localhost:5000/api/places', 'POST', formData);
 
       history.push('/');
     } catch (err) {}
@@ -67,7 +67,7 @@ const NewPlace = () => {
           label="Title"
           validators={[VALIDATOR_REQUIRE()]}
           errorText="Please enter a valid title"
-          onInput={titleInputHandler}
+          onInput={inputHandler}
         />
         <Input
           id="description"
@@ -76,7 +76,7 @@ const NewPlace = () => {
           label="Description"
           validators={[VALIDATOR_MINLENGTH(5)]}
           errorText="Please enter a valid description"
-          onInput={titleInputHandler}
+          onInput={inputHandler}
         />
         <Input
           id="address"
@@ -85,7 +85,13 @@ const NewPlace = () => {
           label="Address"
           validators={[VALIDATOR_REQUIRE]}
           errorText="Please enter a valid address."
-          onInput={titleInputHandler}
+          onInput={inputHandler}
+        />
+        <ImageUpload
+          id="image"
+          center
+          onInput={inputHandler}
+          errorText="Please provide an image"
         />
         <Button type="submit" disabled={!formState.isValid}>
           ADD PLACE
